@@ -52,10 +52,11 @@ jobs:
 
           # Gerekli python paketlerini yükle
           pip install --upgrade pip
-          pip install -r requirements.txt
+          pip install flask
 
           # Uygulamayı pm2 ile başlat (pm2 yoksa yükle)
           if ! command -v pm2 &> /dev/null; then
+            sudo yum install -y nodejs
             sudo npm install -g pm2
           fi
 

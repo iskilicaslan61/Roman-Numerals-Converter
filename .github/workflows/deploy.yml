@@ -31,3 +31,11 @@ jobs:
           pkill -f app.py || true
           nohup python app.py > output.log 2>&1 &
         EOF
+    - name: Debug SSH connection
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+        ssh -v ${{ secrets.EC2_HOST }} "echo 'SSH connected successfully!'"
+

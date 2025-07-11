@@ -59,9 +59,11 @@ jobs:
             sudo npm install -g pm2
           fi
 
-          pm2 describe roman-numerals-converter || pm2 start roman-numerals-converter-app.py --interpreter python3 --name roman-numerals-converter
+          pm2 stop roman-numerals-converter || true
+          pm2 start roman-numerals-converter-app.py --interpreter python3 --name roman-numerals-converter
           pm2 save
-          pm2 restart roman-numerals-converter
+
+          deactivate
 
           
         EOF

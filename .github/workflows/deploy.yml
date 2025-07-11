@@ -1,74 +1,67 @@
-name: Deploy Flask App to EC2
+name: Deploy Flask App
 
 on:
   push:
     branches:
-      - main  # or 'master' if your main branch is named that
+      - main
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+    - name: Checkout code
+      uses: actions/checkout@v3
 
-      - name: Set up SSH key
-        uses: webfactory/ssh-agent@v0.9.0
-        with:
-          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
+    - name: Deploy to EC2
+      env:
+        SSH_PRIVATE_KEY: ${{ secrets.EC2_SSH_KEY }}
+        HOST: ${{ secrets.EC2_HOST }}
+        USERNAME: ec2-user
+        APP_DIR: /home/ec2-user/Roman-Numerals-Converter
+      run: |
+        mkdir -p ~/.ssh
+        echo "$SSH_PRIVATE_KEY" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
 
-      - name: Add EC2 host to known_hosts
-        run: |
-          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+        ssh-keyscan -H $HOST >> ~/.ssh/known_hosts
 
-      - name: Deploy to EC2 and run Flask app
-        run: |
-          ssh -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
-            set -e
+        ssh -o StrictHostKeyChecking=no $USERNAME@$HOST << 'EOF'
+          APP_DIR=/home/ec2-user/Roman-Numerals-Converter
 
-            APP_DIR=/home/ec2-user/Roman-Numerals-Converter
+          # Python 3 ve Git kurulu mu kontrol et
+          sudo yum install -y python3 git
 
-            # Ensure Python and Git are installed
-            sudo yum install -y python3 git
-
-            # Clone or update repo
-            if [ ! -d "$APP_DIR" ]; then
-              git clone https://github.com/iskilicaslan61/Roman-Numerals-Converter.git $APP_DIR
-            else
-              cd $APP_DIR
-              git config --global --add safe.directory "$APP_DIR"
-              git pull origin main
-            fi
-
+          # Proje dizini varsa izinleri düzelt, yoksa klonla
+          if [ ! -d "$APP_DIR" ]; then
+            git clone https://github.com/iskilicaslan61/Roman-Numerals-Converter.git $APP_DIR
+          else
+            sudo chown -R ec2-user:ec2-user $APP_DIR
             cd $APP_DIR
+            git config --global --add safe.directory "$APP_DIR"
+            git pull origin main
+          fi
 
-            # Optional: Create virtualenv (if needed)
-            # python3 -m venv venv
-            # source venv/bin/activate
+          cd $APP_DIR
 
-            # Install Flask if not already
-            pip3 install --user flask
+          # Sanal ortam oluştur ve aktif et
+          if [ ! -d "venv" ]; then
+            python3 -m venv venv
+          fi
+          source venv/bin/activate
 
-            # Create systemd service
-            sudo tee /etc/systemd/system/romanapp.service > /dev/null <<EOL
-            [Unit]
-            Description=Flask Roman Numerals App
-            After=network.target
+          # Gerekli python paketlerini yükle
+          pip install --upgrade pip
+          pip install -r requirements.txt
 
-            [Service]
-            User=ec2-user
-            WorkingDirectory=$APP_DIR
-            ExecStart=/usr/bin/python3 $APP_DIR/roman-numerals-converter-app.py
-            Restart=always
+          # Uygulamayı pm2 ile başlat (pm2 yoksa yükle)
+          if ! command -v pm2 &> /dev/null; then
+            sudo npm install -g pm2
+          fi
 
-            [Install]
-            WantedBy=multi-user.target
-            EOL
+          pm2 describe roman-numerals-converter || pm2 start roman-numerals-converter-app.py --interpreter python3 --name roman-numerals-converter
+          pm2 save
+          pm2 restart roman-numerals-converter
 
-            # Reload and restart the service
-            sudo systemctl daemon-reexec
-            sudo systemctl daemon-reload
-            sudo systemctl enable romanapp
-            sudo systemctl restart romanapp
-          EOF
+          deactivate
+        EOF

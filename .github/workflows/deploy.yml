@@ -1,55 +1,60 @@
-name: Deploy to EC2
+name: Deploy Flask App to EC2
 
 on:
   push:
     branches:
-      - main  # Trigger on pushes to main branch
+      - main  # or 'master', depending on your default branch
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v4
+    - name: Checkout repo
+      uses: actions/checkout@v3
 
-    - name: Set up SSH key
+    - name: Set up SSH
       run: |
         mkdir -p ~/.ssh
         echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
-
-    - name: Add EC2 host to known_hosts
-      run: |
         ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-    
-    - name: Deploy to EC2
+    - name: Deploy via SSH
       run: |
-        ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-        set -e
+        ssh -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
+          set -e
+          
+          # Set project directory
+          APP_DIR=~/my-app
 
-        # Install Node.js and PM2 if not present
-        if ! command -v node &> /dev/null; then
-          curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
-          sudo yum install -y nodejs
-        fi
+          # Clone or pull repo
+          if [ ! -d "$APP_DIR/.git" ]; then
+            rm -rf $APP_DIR
+            git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git $APP_DIR
+          else
+            cd $APP_DIR
+            git pull origin main
+          fi
 
-        if ! command -v pm2 &> /dev/null; then
-          sudo npm install -g pm2
-        fi
+          cd $APP_DIR
 
-        # Create app directory if it doesn't exist
-        mkdir -p ~/my-app
-        cd ~/my-app
+          # Install Python and pip if needed
+          sudo yum install -y python3 git
 
-        # Clone or pull latest changes
-        if [ ! -d .git ]; then
-          git clone https://github.com/iskilicaslan61/Roman-Numerals-Converter.git .
-        else
-          git pull
-        fi
+          # Set up virtualenv
+          python3 -m venv venv
+          source venv/bin/activate
 
-        npm install
-        pm2 restart app || pm2 start app.js --name app
+          # Install requirements
+          pip install --upgrade pip
+          pip install -r requirements.txt
+
+          # Restart Flask app with gunicorn and pm2
+          if ! command -v pm2 &> /dev/null; then
+            npm install -g pm2
+          fi
+
+          pm2 restart flask-app || pm2 start venv/bin/gunicorn --name flask-app -w 4 -b 0.0.0.0:8000 app:app
+
         EOF

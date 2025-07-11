@@ -184,7 +184,7 @@
 
     <form action="/" method="post">
       <label for="number">Enter another number:</label>
-      <input type="number" placeholder="50" name="number" id="number" min="1" max="3999" required />
+      <input type="number" placeholder="numbers from 1 to 3999 are allowed" name="number" id="number" min="1" max="3999" required />
       <button type="submit">Convert</button>
       {% if not_valid %}
       <p class="warning">Not Valid! Please enter a number between 1 and 3999, inclusively.</p>

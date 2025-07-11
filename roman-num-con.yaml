@@ -3,13 +3,16 @@ Description: |
     CloudFormation Template for Roman Numerals Converter Application. 
     This template creates Python Flask Web Application on Amazon Linux 2023.
     The application is hosted on an EC2 instance with a security group that allows HTTP and SSH access.
-    The instance is configured to run a static website using Apache.
+    The instance is configured to run a static website using Flask, which converts numbers to Roman numerals.
+    The application is accessible via web browser and terminal from anywhere.
+    The application files are downloaded from Github repo and deployed on EC2 Instance using user data script within cloudformation template. 
+    Roman Numerals Converter Application Website URL is given as output by Cloudformation Service, after the stack created.
 
     Author: ismail Kilicaslan
 
 Parameters:
     KeyName:
-      Description: Enter the name of your keyname.
+      Description: SSH Key Pair name for EC2 login
       Type: AWS::EC2::KeyPair::KeyName
     LatestAmiId:
       Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'

@@ -3,14 +3,14 @@ name: Deploy Flask App to EC2
 on:
   push:
     branches:
-      - main  # or 'master', depending on your default branch
+      - main  # adjust if needed
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout repo
+    - name: Checkout code
       uses: actions/checkout@v3
 
     - name: Set up SSH
@@ -20,17 +20,19 @@ jobs:
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-    - name: Deploy via SSH
+    - name: Deploy to EC2 and run Flask app
       run: |
         ssh -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
           set -e
-          
-          # Set project directory
-          APP_DIR=~/my-app
 
-          # Clone or pull repo
-          if [ ! -d "$APP_DIR/.git" ]; then
-            rm -rf $APP_DIR
+          # Project directory
+          APP_DIR=~/roman-numerals-app
+
+          # Install dependencies
+          sudo yum install -y python3 git
+
+          # Clone repo or pull latest changes
+          if [ ! -d "$APP_DIR" ]; then
             git clone https://github.com/YOUR_USERNAME/YOUR_REPO.git $APP_DIR
           else
             cd $APP_DIR
@@ -39,22 +41,25 @@ jobs:
 
           cd $APP_DIR
 
-          # Install Python and pip if needed
-          sudo yum install -y python3 git
+          # Create systemd service
+          sudo tee /etc/systemd/system/romanapp.service > /dev/null <<EOL
+          [Unit]
+          Description=Flask Roman Numerals App
+          After=network.target
 
-          # Set up virtualenv
-          python3 -m venv venv
-          source venv/bin/activate
+          [Service]
+          User=ec2-user
+          WorkingDirectory=$APP_DIR
+          ExecStart=/usr/bin/python3 $APP_DIR/roman-numerals-converter-app.py
+          Restart=always
 
-          # Install requirements
-          pip install --upgrade pip
-          
+          [Install]
+          WantedBy=multi-user.target
+          EOL
 
-          # Restart Flask app with gunicorn and pm2
-          if ! command -v pm2 &> /dev/null; then
-            npm install -g pm2
-          fi
-
-          pm2 restart flask-app || pm2 start venv/bin/gunicorn --name flask-app -w 4 -b 0.0.0.0:8000 app:app
-
+          # Start the service
+          sudo systemctl daemon-reexec
+          sudo systemctl daemon-reload
+          sudo systemctl enable romanapp
+          sudo systemctl restart romanapp
         EOF

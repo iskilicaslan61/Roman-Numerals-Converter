@@ -48,7 +48,7 @@ jobs:
 
           # Install requirements
           pip install --upgrade pip
-          pip install -r requirements.txt
+          
 
           # Restart Flask app with gunicorn and pm2
           if ! command -v pm2 &> /dev/null; then

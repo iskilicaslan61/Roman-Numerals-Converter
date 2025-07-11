@@ -54,17 +54,10 @@ jobs:
           pip install --upgrade pip
           pip install flask
 
-          # Uygulamayı pm2 ile başlat (pm2 yoksa yükle)
-          if ! command -v pm2 &> /dev/null; then
-            sudo yum install -y nodejs
-            sudo npm install -g pm2
-          fi
+          pkill -f roman-numerals-converter-app.py || true
 
-          pm2 stop roman-numerals-converter || true
-          pm2 start roman-numerals-converter-app.py --interpreter python3 --name roman-numerals-converter
-          pm2 save
-
-          deactivate
+  
+          nohup python3 roman-numerals-converter-app.py > app.log 2>&1 &
 
           
         EOF

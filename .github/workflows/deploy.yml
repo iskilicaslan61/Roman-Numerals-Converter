@@ -3,7 +3,7 @@ name: Deploy to EC2
 on:
   push:
     branches:
-      - main  # change to your default branch
+      - main  # Change if your default branch is different
 
 jobs:
   deploy:
@@ -13,29 +13,21 @@ jobs:
     - name: Checkout repo
       uses: actions/checkout@v3
 
-    - name: Set up SSH
+    - name: Set up SSH and verify connection
       run: |
         mkdir -p ~/.ssh
         echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
         chmod 600 ~/.ssh/id_rsa
         ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+        ssh -o StrictHostKeyChecking=no -v ${{ secrets.EC2_HOST }} "echo '✅ SSH connected successfully!'"
 
-    - name: Deploy to EC2 and restart app
+    - name: Deploy and restart Flask app
       run: |
         ssh ${{ secrets.EC2_HOST }} << 'EOF'
           cd /home/ec2-user/Roman-Numerals-Converter
           git pull origin main
           source venv/bin/activate
           pip install -r requirements.txt
-          # Optional: Restart Flask app here (e.g., systemctl restart or kill & rerun)
           pkill -f app.py || true
           nohup python app.py > output.log 2>&1 &
         EOF
-    - name: Debug SSH connection
-      run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
-        ssh -v ${{ secrets.EC2_HOST }} "echo 'SSH connected successfully!'"
-

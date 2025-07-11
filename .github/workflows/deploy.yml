@@ -29,10 +29,10 @@ jobs:
         ssh -o StrictHostKeyChecking=no $USERNAME@$HOST << 'EOF'
           APP_DIR=/home/ec2-user/Roman-Numerals-Converter
 
-          # Python 3 ve Git kurulu mu kontrol et
+          # Python and Git setup
           sudo yum install -y python3 git
 
-          # Proje dizini varsa izinleri düzelt, yoksa klonla
+          # Clone or update the repository
           if [ ! -d "$APP_DIR" ]; then
             git clone https://github.com/iskilicaslan61/Roman-Numerals-Converter.git $APP_DIR
           else
@@ -44,20 +44,20 @@ jobs:
 
           cd $APP_DIR
 
-          # Sanal ortam oluştur ve aktif et
+          # Create a virtual environment if it doesn't exist
           if [ ! -d "venv" ]; then
             python3 -m venv venv
           fi
           source venv/bin/activate
 
-          # Gerekli python paketlerini yükle
+          # Upgrade pip and install dependencies
           pip install --upgrade pip
           pip install flask
 
+          # Ensure the app is not already running
           pkill -f roman-numerals-converter-app.py || true
 
-  
+          # Start the Flask app in the background  
           nohup python3 roman-numerals-converter-app.py > app.log 2>&1 &
 
-          
         EOF

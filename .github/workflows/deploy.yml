@@ -63,5 +63,5 @@ jobs:
           pm2 save
           pm2 restart roman-numerals-converter
 
-          deactivate
+          
         EOF

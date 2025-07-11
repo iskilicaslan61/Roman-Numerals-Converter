@@ -1,0 +1,173 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Ondiacademy Project - Roman Numerals Converter</title>
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;700&display=swap" rel="stylesheet" />
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      font-family: 'Roboto', sans-serif;
+      background: linear-gradient(135deg, #667eea, #764ba2);
+      color: #333;
+      margin: 0;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+      padding: 20px;
+    }
+
+    .container {
+      background: white;
+      max-width: 600px;
+      width: 100%;
+      padding: 40px 30px;
+      border-radius: 12px;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.12);
+      text-align: center;
+      transition: box-shadow 0.3s ease;
+    }
+
+    .container:hover {
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.2);
+    }
+
+    img {
+      width: 280px;
+      height: auto;
+      margin: 0 auto 30px;
+      display: block;
+    }
+
+    h2 {
+      font-weight: 700;
+      margin-bottom: 12px;
+      color: #4b3f72;
+    }
+
+    p.description {
+      font-size: 1rem;
+      color: #555;
+      margin-bottom: 30px;
+    }
+
+    form label {
+      display: block;
+      font-weight: 700;
+      margin-bottom: 8px;
+      font-size: 1.1rem;
+      color: #333;
+      text-align: left;
+    }
+
+    input[type="number"] {
+      width: 100%;
+      padding: 15px 18px;
+      border: 2px solid #ddd;
+      border-radius: 8px;
+      font-size: 1.1rem;
+      transition: border-color 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    input[type="number"]:focus {
+      border-color: #667eea;
+      box-shadow: 0 0 8px rgba(102, 126, 234, 0.6);
+      outline: none;
+    }
+
+    button {
+      margin-top: 25px;
+      background: #667eea;
+      border: none;
+      color: white;
+      font-size: 1.2rem;
+      font-weight: 700;
+      padding: 16px;
+      width: 100%;
+      border-radius: 8px;
+      cursor: pointer;
+      box-shadow: 0 6px 12px rgba(102, 126, 234, 0.6);
+      transition: background 0.3s ease, box-shadow 0.3s ease;
+    }
+
+    button:hover {
+      background: #5a6ad9;
+      box-shadow: 0 8px 18px rgba(90, 106, 217, 0.8);
+    }
+
+    .warning {
+      margin-top: 20px;
+      font-weight: 700;
+      color: #d9534f;
+      background: #f9d6d5;
+      border: 1px solid #d43f3a;
+      padding: 10px 15px;
+      border-radius: 6px;
+      text-align: center;
+      animation: shake 0.4s ease;
+      display: inline-block;
+      max-width: 100%;
+    }
+
+    @keyframes shake {
+      0% {
+        transform: translateX(0);
+      }
+
+      25% {
+        transform: translateX(-6px);
+      }
+
+      50% {
+        transform: translateX(6px);
+      }
+
+      75% {
+        transform: translateX(-6px);
+      }
+
+      100% {
+        transform: translateX(0);
+      }
+    }
+
+    .footnote {
+      margin-top: 40px;
+      font-style: italic;
+      font-size: 0.9rem;
+      color: rgba(0, 0, 255, 0.7);
+    }
+  </style>
+</head>
+
+<body>
+  <div class="container">
+    <img src="https://ondiacademy.com/wp-content/uploads/2024/06/Element-1.png" alt="Ondia Logo" />
+
+    <h2>Project: Roman Numerals Converter Application</h2>
+    <p class="description">
+      This application converts decimal numbers to Roman numerals. Only numbers from <b>1</b> to <b>3999</b> are allowed.
+    </p>
+
+    <form action="/" method="post">
+      <label for="number">Please enter a number:</label>
+      <input type="number" placeholder="50" name="number" id="number" min="1" max="3999" required />
+      <button type="submit">Convert</button>
+      {% if not_valid %}
+      <p class="warning">Not Valid! Please enter a number between 1 and 3999, inclusively.</p>
+      {% endif %}
+    </form>
+
+    <p class="footnote">
+      This app is developed in Python by <b>{{ developer_name }}</b> and deployed with Flask on AWS EC2 Instance using AWS CloudFormation Service.
+    </p>
+  </div>
+</body>
+
+</html>

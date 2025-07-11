@@ -1,0 +1,83 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: |
+    CloudFormation Template for Roman Numerals Converter Application. 
+    This template creates Python Flask Web Application on Amazon Linux 2023.
+    The application is hosted on an EC2 instance with a security group that allows HTTP and SSH access.
+    The instance is configured to run a static website using Apache.
+
+    Author: ismail Kilicaslan
+
+Parameters:
+    KeyName:
+      Description: Enter the name of your keyname.
+      Type: AWS::EC2::KeyPair::KeyName
+    LatestAmiId:
+      Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+      Default: '/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64'
+      
+Resources:
+
+  WebServerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties: 
+      GroupDescription: Enable HTTP for Flask Web Server and SSH port to secure reach to my EC2
+      SecurityGroupIngress: 
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 8080
+          ToPort: 8080
+          CidrIp: 0.0.0.0/0
+   
+  WebServer:
+      Type: AWS::EC2::Instance
+      Properties: 
+        ImageId: !Ref LatestAmiId
+        InstanceType: t2.micro
+        KeyName: !Ref KeyName
+        SecurityGroups: 
+          - !Ref WebServerSecurityGroup
+        Tags:
+          - Key: Name
+            Value: !Sub Web Server of ${AWS::StackName} Stack 
+        
+        UserData: !Base64 |
+          #! /bin/bash
+          dnf update -y
+          dnf install python3 -y
+          dnf install python3-pip -y
+          pip3 install flask
+          dnf install git -y
+          chmod -R 777 /var/www/html
+          cd /var/www/html
+          rm -rf /var/www/html/*
+          git clone https://github.com/iskilicaslan61/Roman-Numerals-Converter.git
+          cp -r Projects/101-kittens-carousel-static-website-ec2/static-web/* .
+          rm -rf Projects
+          python3 roman-numerals-converter-app.py 
+          
+          
+
+          
+Outputs: 
+  WebsiteURL:
+    Value: !Sub 
+      - http://${PIA}
+      - PIA: !GetAtt WebServer.PublicDnsName
+    Description: Roman Numerals Converter Application URL
+  
+
+
+
+
+
+
+
+
+

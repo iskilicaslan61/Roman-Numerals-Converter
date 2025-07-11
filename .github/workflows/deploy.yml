@@ -1,0 +1,57 @@
+name: Deploy to EC2
+
+on:
+  push:
+    branches:
+      - main  # Change if needed
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+
+    steps:
+    - name: Checkout code from GitHub
+      uses: actions/checkout@v3
+
+    - name: Set up SSH and verify connection with debug
+      run: |
+        mkdir -p ~/.ssh
+        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
+        chmod 600 ~/.ssh/id_rsa
+
+        echo "Adding EC2 host to known_hosts"
+        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+
+        echo "Testing SSH connection with verbose output..."
+        ssh -vvv -o StrictHostKeyChecking=no ${{ secrets.EC2_HOST }} "echo ✅ SSH connected successfully"
+
+    - name: Deploy and restart Flask app with debug
+      run: |
+        set -x  # Enable shell command echo for debugging
+
+        ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_HOST }} << 'EOF'
+          echo "Current directory: $(pwd)"
+          cd /home/ec2-user/Roman-Numerals-Converter || { echo "Folder not found!"; exit 1; }
+
+          echo "Pulling latest code..."
+          git pull origin main || { echo "git pull failed"; exit 1; }
+
+          if [ ! -d "venv" ]; then
+            echo "Creating virtual environment..."
+            python3 -m venv venv || { echo "venv creation failed"; exit 1; }
+          fi
+
+          echo "Activating virtual environment..."
+          source venv/bin/activate || { echo "venv activate failed"; exit 1; }
+
+          echo "Installing requirements..."
+          pip install -r requirements.txt || { echo "pip install failed"; exit 1; }
+
+          echo "Stopping previous Flask app if running..."
+          pkill -f app.py || echo "No previous app to kill"
+
+          echo "Starting Flask app with nohup..."
+          nohup python app.py > output.log 2>&1 &
+
+          echo "Deployment complete. Flask app restarted."
+        EOF

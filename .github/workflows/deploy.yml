@@ -23,11 +23,33 @@ jobs:
       run: |
         ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
+    
     - name: Deploy to EC2
       run: |
         ssh -o StrictHostKeyChecking=no ${{ secrets.EC2_USER }}@${{ secrets.EC2_HOST }} << 'EOF'
-          cd /home/${{ secrets.EC2_USER }}/my-app  # Adjust to your app directory
-          git pull origin main
-          npm install --production
-          pm2 restart my-app  # Or your process manager / service
+        set -e
+
+        # Install Node.js and PM2 if not present
+        if ! command -v node &> /dev/null; then
+          curl -fsSL https://rpm.nodesource.com/setup_18.x | sudo bash -
+          sudo yum install -y nodejs
+        fi
+
+        if ! command -v pm2 &> /dev/null; then
+          sudo npm install -g pm2
+        fi
+
+        # Create app directory if it doesn't exist
+        mkdir -p ~/my-app
+        cd ~/my-app
+
+        # Clone or pull latest changes
+        if [ ! -d .git ]; then
+          git clone https://github.com/YOUR_USERNAME/YOUR_REPO_NAME.git .
+        else
+          git pull
+        fi
+
+        npm install
+        pm2 restart app || pm2 start app.js --name app
         EOF

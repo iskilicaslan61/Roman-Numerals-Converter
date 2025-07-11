@@ -3,63 +3,72 @@ name: Deploy Flask App to EC2
 on:
   push:
     branches:
-      - main  # adjust if needed
+      - main  # or 'master' if your main branch is named that
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
 
     steps:
-    - name: Checkout code
-      uses: actions/checkout@v3
+      - name: Checkout code
+        uses: actions/checkout@v3
 
-    - name: Set up SSH
-      run: |
-        mkdir -p ~/.ssh
-        echo "${{ secrets.EC2_SSH_KEY }}" > ~/.ssh/id_rsa
-        chmod 600 ~/.ssh/id_rsa
-        ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
+      - name: Set up SSH key
+        uses: webfactory/ssh-agent@v0.9.0
+        with:
+          ssh-private-key: ${{ secrets.EC2_SSH_KEY }}
 
-    - name: Deploy to EC2 and run Flask app
-      run: |
-        ssh -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
-          set -e
+      - name: Add EC2 host to known_hosts
+        run: |
+          ssh-keyscan -H ${{ secrets.EC2_HOST }} >> ~/.ssh/known_hosts
 
-          # Project directory
-          APP_DIR=~/Roman-Numerals-Converter
+      - name: Deploy to EC2 and run Flask app
+        run: |
+          ssh -o StrictHostKeyChecking=no ec2-user@${{ secrets.EC2_HOST }} << 'EOF'
+            set -e
 
-          # Install dependencies
-          sudo yum install -y python3 git
+            APP_DIR=/home/ec2-user/Roman-Numerals-Converter
 
-          # Clone repo or pull latest changes
-          if [ ! -d "$APP_DIR" ]; then
-            git clone https://github.com/ismailkilicaslan/Roman-Numerals-Converter.git $APP_DIR
-          else
+            # Ensure Python and Git are installed
+            sudo yum install -y python3 git
+
+            # Clone or update repo
+            if [ ! -d "$APP_DIR" ]; then
+              git clone https://github.com/iskilicaslan61/Roman-Numerals-Converter.git $APP_DIR
+            else
+              cd $APP_DIR
+              git config --global --add safe.directory "$APP_DIR"
+              git pull origin main
+            fi
+
             cd $APP_DIR
-            git pull origin main
-          fi
 
-          cd $APP_DIR
+            # Optional: Create virtualenv (if needed)
+            # python3 -m venv venv
+            # source venv/bin/activate
 
-          # Create systemd service
-          sudo tee /etc/systemd/system/romanapp.service > /dev/null <<EOL
-          [Unit]
-          Description=Flask Roman Numerals App
-          After=network.target
+            # Install Flask if not already
+            pip3 install --user flask
 
-          [Service]
-          User=ec2-user
-          WorkingDirectory=$APP_DIR
-          ExecStart=/usr/bin/python3 $APP_DIR/roman-numerals-converter-app.py
-          Restart=always
+            # Create systemd service
+            sudo tee /etc/systemd/system/romanapp.service > /dev/null <<EOL
+            [Unit]
+            Description=Flask Roman Numerals App
+            After=network.target
 
-          [Install]
-          WantedBy=multi-user.target
-          EOL
+            [Service]
+            User=ec2-user
+            WorkingDirectory=$APP_DIR
+            ExecStart=/usr/bin/python3 $APP_DIR/roman-numerals-converter-app.py
+            Restart=always
 
-          # Start the service
-          sudo systemctl daemon-reexec
-          sudo systemctl daemon-reload
-          sudo systemctl enable romanapp
-          sudo systemctl restart romanapp
-        EOF
+            [Install]
+            WantedBy=multi-user.target
+            EOL
+
+            # Reload and restart the service
+            sudo systemctl daemon-reexec
+            sudo systemctl daemon-reload
+            sudo systemctl enable romanapp
+            sudo systemctl restart romanapp
+          EOF

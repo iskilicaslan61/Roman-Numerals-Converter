@@ -1,0 +1,139 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: Roman Numerals Converter Flask App with HTTPS, ALB and Route53
+
+Parameters:
+  KeyName:
+    Description: Name of an existing EC2 KeyPair
+    Type: AWS::EC2::KeyPair::KeyName
+
+  LatestAmiId:
+    Type: 'AWS::SSM::Parameter::Value<AWS::EC2::Image::Id>'
+    Default: '/aws/service/ami-amazon-linux-latest/al2023-ami-kernel-6.1-x86_64'
+
+  VpcId:
+    Type: AWS::EC2::VPC::Id
+    Description: VPC Id where resources will be deployed (default VPC)
+
+  Subnet1:
+    Type: AWS::EC2::Subnet::Id
+    Description: Public Subnet 1 for ALB
+
+  Subnet2:
+    Type: AWS::EC2::Subnet::Id
+    Description: Public Subnet 2 for ALB
+
+Resources:
+
+  InstanceSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow traffic from ALB only to EC2
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 5000
+          ToPort: 5000
+          SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+
+  LoadBalancerSecurityGroup:
+    Type: AWS::EC2::SecurityGroup
+    Properties:
+      GroupDescription: Allow internet access to ALB
+      VpcId: !Ref VpcId
+      SecurityGroupIngress:
+        - IpProtocol: tcp
+          FromPort: 80
+          ToPort: 80
+          CidrIp: 0.0.0.0/0
+        - IpProtocol: tcp
+          FromPort: 443
+          ToPort: 443
+          CidrIp: 0.0.0.0/0
+
+  WebServer:
+    Type: AWS::EC2::Instance
+    Properties:
+      InstanceType: t2.micro
+      KeyName: !Ref KeyName
+      ImageId: !Ref LatestAmiId
+      SecurityGroupIds:
+        - !Ref InstanceSecurityGroup
+      SubnetId: !Ref Subnet1  # EC2'yi subnet içine alıyoruz
+      Tags:
+        - Key: Name
+          Value: RomanNumeralsApp
+      UserData: !Base64 |
+        #!/bin/bash
+        dnf update -y
+        dnf install python3 -y
+        dnf install python3-pip -y
+        pip3 install flask
+        dnf install git -y
+        cd /home/ec2-user
+        git clone https://github.com/iskilicaslan61/Roman-Numerals-Converter.git
+        cd Roman-Numerals-Converter
+        nohup python3 roman-numerals-converter-app.py > app.log 2>&1 &
+
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup
+    Properties:
+      Name: RomanAppTG
+      Port: 5000
+      Protocol: HTTP
+      VpcId: !Ref VpcId
+      TargetType: instance
+      HealthCheckPath: /
+      HealthCheckPort: traffic-port
+      Targets:
+        - Id: !Ref WebServer
+
+  LoadBalancer:
+    Type: AWS::ElasticLoadBalancingV2::LoadBalancer
+    Properties:
+      Name: RomanAppLB
+      Scheme: internet-facing
+      Subnets:
+        - !Ref Subnet1
+        - !Ref Subnet2
+      SecurityGroups:
+        - !Ref LoadBalancerSecurityGroup
+
+  HTTPSListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: forward
+          TargetGroupArn: !Ref TargetGroup
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 443
+      Protocol: HTTPS
+      Certificates:
+        - CertificateArn: arn:aws:acm:us-east-1:920373029879:certificate/4f4c04b2-f01b-48be-b6c3-b496f4236989
+
+  HTTPRedirectListener:
+    Type: AWS::ElasticLoadBalancingV2::Listener
+    Properties:
+      DefaultActions:
+        - Type: redirect
+          RedirectConfig:
+            Protocol: HTTPS
+            Port: 443
+            StatusCode: HTTP_301
+      LoadBalancerArn: !Ref LoadBalancer
+      Port: 80
+      Protocol: HTTP
+
+  DNSRecord:
+    Type: AWS::Route53::RecordSet
+    Properties:
+      HostedZoneId: Z08103453MR7YKPNR5PGC
+      Name: roman.mylittlehobbies.com.
+      Type: A
+      AliasTarget:
+        DNSName: !GetAtt LoadBalancer.DNSName
+        HostedZoneId: Z35SXDOTRQ7X7K  # ALB Hosted Zone ID (sabittir)
+
+Outputs:
+  WebsiteURL:
+    Description: Roman Numerals App via HTTPS
+    Value: https://roman.mylittlehobbies.com

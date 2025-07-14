@@ -66,16 +66,14 @@ Resources:
           cd Roman-Numerals-Converter
           python3 roman-numerals-converter-app.py 
           
-          
-
-          
+         
 Outputs: 
   WebsiteURL:
     Value: !Sub 
       - http://${PIA}
       - PIA: !GetAtt WebServer.PublicDnsName
     Description: Roman Numerals Converter Application URL
-    
+
   
 
 

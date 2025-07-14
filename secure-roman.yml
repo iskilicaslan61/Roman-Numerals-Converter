@@ -22,6 +22,10 @@ Parameters:
     Type: AWS::EC2::Subnet::Id
     Description: Public Subnet 2 for ALB
 
+  CertificateArn:
+    Type: String
+    Description: ARN of the ACM certificate for HTTPS
+
 Resources:
 
   InstanceSecurityGroup:
@@ -34,6 +38,10 @@ Resources:
           FromPort: 5000
           ToPort: 5000
           SourceSecurityGroupId: !Ref LoadBalancerSecurityGroup
+        - IpProtocol: tcp
+          FromPort: 22
+          ToPort: 22
+          CidrIp: 0.0.0.0/0
 
   LoadBalancerSecurityGroup:
     Type: AWS::EC2::SecurityGroup
@@ -108,7 +116,7 @@ Resources:
       Port: 443
       Protocol: HTTPS
       Certificates:
-        - CertificateArn: arn:aws:acm:us-east-1:920373029879:certificate/4f4c04b2-f01b-48be-b6c3-b496f4236989
+        - CertificateArn: !Ref CertificateArn  # Replace with your ACM certificate ARN
 
   HTTPRedirectListener:
     Type: AWS::ElasticLoadBalancingV2::Listener
@@ -136,4 +144,4 @@ Resources:
 Outputs:
   WebsiteURL:
     Description: Roman Numerals App via HTTPS
-    Value: https://roman.mylittlehobbies.com
+    Value: https://roman.ismailkilicaslan.de

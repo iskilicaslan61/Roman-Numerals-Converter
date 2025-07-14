@@ -126,8 +126,8 @@ Resources:
   DNSRecord:
     Type: AWS::Route53::RecordSet
     Properties:
-      HostedZoneId: Z08103453MR7YKPNR5PGC
-      Name: roman.mylittlehobbies.com.
+      HostedZoneId: Z001702832T65D654AOOU
+      Name: roman.ismailkilicaslan.de
       Type: A
       AliasTarget:
         DNSName: !GetAtt LoadBalancer.DNSName

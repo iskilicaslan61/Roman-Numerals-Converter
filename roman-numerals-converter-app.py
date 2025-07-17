@@ -25,7 +25,7 @@ def main_post():
             return render_template('index.html', developer_name='Sumeyra Dogan', not_valid=True)
         return render_template('result.html', number_decimal=number, number_roman=convert(number), developer_name='Ismail Kilicaslan')
     else:
-        return render_template('index.html', developer_name='Ismail Kilicaslan ', not_valid=False)
+        return render_template('index.html', developer_name='Sumeyra Dogan ', not_valid=False)
 
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000, debug=True)

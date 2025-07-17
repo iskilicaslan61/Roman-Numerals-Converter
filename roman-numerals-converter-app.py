@@ -21,7 +21,7 @@ def get_db_credentials(secret_name, region_name='us-east-1'):
     return json.loads(response['SecretString'])
 
 # Fetch credentials from secret
-creds = get_db_credentials("my-rds-secret")  # change to your actual secret name
+creds = get_db_credentials("roman")  # change to your actual secret name
 
 # Connect to RDS
 db = pymysql.connect(

@@ -139,7 +139,7 @@ Resources:
       Type: A
       AliasTarget:
         DNSName: !GetAtt LoadBalancer.DNSName
-        HostedZoneId: Z35SXDOTRQ7X7K  # ALB Hosted Zone ID (sabittir)
+        HostedZoneId: Z35SXDOTRQ7X7K  # ALB'nin Hosted Zone ID'si
 
 Outputs:
   WebsiteURL:
